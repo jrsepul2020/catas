@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-globals */
 
 // Nombre del cache - INCREMENTA ESTE NÚMERO CUANDO HAGAS CAMBIOS
-const CACHE_VERSION = 3;
+const CACHE_VERSION = 4;
 const CACHE_NAME = `virtus-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',

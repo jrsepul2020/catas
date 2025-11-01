@@ -13,7 +13,8 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Flask
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthSimple";
 
@@ -42,6 +43,12 @@ const navigationItems = [
     title: "Estadísticas",
     url: createPageUrl("Estadisticas"),
     icon: BarChart3,
+  },
+  {
+    title: "Muestras",
+    url: createPageUrl("Muestras"),
+    icon: Flask,
+    adminOnly: true,
   },
   {
     title: "Configuración",
@@ -166,7 +173,9 @@ export default function LayoutNew({ children }) {
 
         <nav className="flex-1 p-2 overflow-y-auto">
           <div className="space-y-1">
-            {navigationItems.map((item) => {
+            {navigationItems
+              .filter(item => !item.adminOnly || user?.rol === 'administrador')
+              .map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.url;
               return (
@@ -241,7 +250,9 @@ export default function LayoutNew({ children }) {
             </div>
             <nav className="flex-1 p-2 overflow-y-auto">
               <div className="space-y-1">
-                {navigationItems.map((item) => {
+                {navigationItems
+                  .filter(item => !item.adminOnly || user?.rol === 'administrador')
+                  .map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.url;
                   return (

@@ -12,6 +12,8 @@ import NuevaCata from "./NuevaCata";
 
 import CataEspirituosos from "./CataEspirituosos";
 
+import Muestras from "./Muestras";
+
 import TestSupabase from "./TestSupabase";
 
 import UsuariosTest from "./UsuariosTest";
@@ -43,6 +45,8 @@ const PAGES = {
     NuevaCata: NuevaCata,
     
     CataEspirituosos: CataEspirituosos,
+    
+    Muestras: Muestras,
     
     TestSupabase: TestSupabase,
     
@@ -98,6 +102,8 @@ function PagesContent() {
                 <Route path="/NuevaCata" element={<NuevaCata />} />
                 
                 <Route path="/CataEspirituosos" element={<CataEspirituosos />} />
+                
+                <Route path="/Muestras" element={<Muestras />} />
                 
                 <Route path="/TestSupabase" element={<TestSupabase />} />
                 
