@@ -49,7 +49,7 @@ const AppContent = () => {
             animation: 'spin 1s linear infinite',
             margin: '0 auto 20px'
           }}></div>
-          <p style={{ fontSize: '18px' }}>Cargando Vinisima...</p>
+          <p style={{ fontSize: '18px' }}>Cargando VIRTUS...</p>
         </div>
       </div>
     );

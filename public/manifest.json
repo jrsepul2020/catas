@@ -1,11 +1,11 @@
 {
-  "name": "Vinisima - Gestión de Catas",
-  "short_name": "Vinisima",
-  "description": "Aplicación para gestión de catas de vino",
+  "name": "VIRTUS - Gestión de Catas",
+  "short_name": "VIRTUS",
+  "description": "Sistema de gestión profesional de catas de vino",
   "start_url": "/",
   "display": "fullscreen",
-  "background_color": "#390B0B",
-  "theme_color": "#390B0B",
+  "background_color": "#390A0B",
+  "theme_color": "#390A0B",
   "orientation": "landscape",
   "icons": [
     {
