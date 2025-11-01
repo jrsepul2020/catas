@@ -82,15 +82,32 @@ export default function Layout({ children }) {
   const location = useLocation();
   const { user, signOut } = useAuth();
   const [deferredPrompt, setDeferredPrompt] = React.useState(null);
+  const [isInstalled, setIsInstalled] = React.useState(false);
 
   React.useEffect(() => {
+    // Check if app is already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      setIsInstalled(true);
+    }
+
     // PWA Install handler
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      setIsInstalled(false); // Si recibimos el evento, no está instalada
     };
+    
     window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    
+    // Detect if app was installed
+    window.addEventListener('appinstalled', () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    });
+    
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
   }, []);
 
   const handleLogout = () => {
@@ -101,6 +118,9 @@ export default function Layout({ children }) {
     if (!deferredPrompt) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setIsInstalled(true);
+    }
     setDeferredPrompt(null);
   };
 
@@ -213,17 +233,23 @@ export default function Layout({ children }) {
               
                 <SidebarGroup className="mt-4">
                   <SidebarGroupContent>
-                    <Button
-                      onClick={handleInstallPWA}
-                      disabled={!deferredPrompt}
-                      className="w-full text-white group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:px-3 group-data-[collapsible=icon]:py-3 disabled:opacity-50"
-                      style={{ backgroundColor: '#5a1616' }}
-                    >
-                      <Download className="w-4 h-4 mr-2 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:w-6 group-data-[collapsible=icon]:h-6" />
-                      <span className="group-data-[collapsible=icon]:hidden">
-                        {deferredPrompt ? 'Instalar App' : 'Ya Instalada'}
-                      </span>
-                    </Button>
+                    {deferredPrompt && !isInstalled && (
+                      <Button
+                        onClick={handleInstallPWA}
+                        className="w-full text-white group-data-[collapsible=icon]:w-auto group-data-[collapsible=icon]:px-3 group-data-[collapsible=icon]:py-3"
+                        style={{ backgroundColor: '#5a1616' }}
+                      >
+                        <Download className="w-4 h-4 mr-2 group-data-[collapsible=icon]:mr-0 group-data-[collapsible=icon]:w-6 group-data-[collapsible=icon]:h-6" />
+                        <span className="group-data-[collapsible=icon]:hidden">
+                          Instalar App
+                        </span>
+                      </Button>
+                    )}
+                    {isInstalled && (
+                      <div className="w-full text-center py-2 text-xs text-red-200/50 group-data-[collapsible=icon]:hidden">
+                        ✓ App instalada
+                      </div>
+                    )}
                   </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>

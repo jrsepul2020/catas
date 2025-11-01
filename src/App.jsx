@@ -2,7 +2,7 @@ import { AuthProvider, useAuth } from './contexts/AuthSimple';
 import CleanLogin from './components/CleanLogin';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Layout from './pages/Layout.jsx';
+import LayoutNew from './pages/LayoutNew.jsx';
 import Dashboard from './pages/Dashboard';
 import Tandas from './pages/Tandas';
 import Estadisticas from './pages/Estadisticas';
@@ -66,7 +66,7 @@ const AppContent = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <Layout>
+        <LayoutNew>
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -76,7 +76,7 @@ const AppContent = () => {
             <Route path="/nuevacata" element={<NuevaCata />} />
             <Route path="/cataespirituosos" element={<CataEspirituosos />} />
           </Routes>
-        </Layout>
+        </LayoutNew>
       </Router>
     </QueryClientProvider>
   );
