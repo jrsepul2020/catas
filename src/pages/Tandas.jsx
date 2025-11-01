@@ -1,187 +1,303 @@
-import React, { useState } from "react";
-import { Tanda, Muestra } from "@/api/entities";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Calendar, Clock, MapPin, Users, Wine } from "lucide-react";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
-import FormularioTanda from "../components/tandas/FormularioTanda";
+import { useState, useEffect, useRef } from 'react';
+import { supabase } from '../api/supabaseClient';
+import { Printer, X, CheckCircle } from 'lucide-react';
+import SampleEditModal from '../components/SampleEditModal';
 
-const estadoColors = {
-  "Programada": "bg-blue-50 text-blue-900 border-blue-200",
-  "En Curso": "bg-green-50 text-green-900 border-green-200",
-  "Finalizada": "bg-gray-50 text-gray-900 border-gray-200",
-  "Cancelada": "bg-red-50 text-red-900 border-red-200"
-};
+export default function GestionTandas() {
+  const [selectedTanda, setSelectedTanda] = useState(null);
+  const [samples, setSamples] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editingSample, setEditingSample] = useState(null);
+  const [showPrintModal, setShowPrintModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const printContentRef = useRef(null);
 
-export default function Tandas() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingTanda, setEditingTanda] = useState(null);
-  const queryClient = useQueryClient();
+  const tandaOptions = Array.from({ length: 26 }, (_, i) => i + 1);
 
-  const { data: tandas, isLoading } = useQuery({
-    queryKey: ['tandas'],
-    queryFn: () => Tanda.list('-fecha'),
-    initialData: [],
-  });
+  useEffect(() => {
+    if (selectedTanda) {
+      fetchSamplesByTanda(selectedTanda);
+    }
+  }, [selectedTanda]);
 
-  const { data: muestras } = useQuery({
-    queryKey: ['muestras'],
-    queryFn: () => Muestra.list(),
-    initialData: [],
-  });
+  const fetchSamplesByTanda = async (tanda) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('muestras')
+        .select('*')
+        .eq('tanda', tanda)
+        .order('codigo', { ascending: true });
 
-  const createMutation = useMutation({
-    mutationFn: (data) => Tanda.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tandas'] });
-      setShowForm(false);
-      setEditingTanda(null);
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => Tanda.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tandas'] });
-      setShowForm(false);
-      setEditingTanda(null);
-    },
-  });
-
-  const handleSubmit = (data) => {
-    if (editingTanda) {
-      updateMutation.mutate({ id: editingTanda.id, data });
-    } else {
-      createMutation.mutate(data);
+      if (error) throw error;
+      setSamples(data || []);
+    } catch (error) {
+      console.error('Error fetching samples:', error);
+      alert('Error al cargar las muestras de la tanda');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleEdit = (tanda) => {
-    setEditingTanda(tanda);
-    setShowForm(true);
+  const handlePrint = () => {
+    setShowPrintModal(true);
   };
 
+  const handleConfirmPrint = () => {
+    setShowPrintModal(false);
+    window.print();
+    setTimeout(() => {
+      setShowSuccessModal(true);
+    }, 300);
+  };
+
+  if (loading && !samples.length) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-xl text-gray-600">Cargando muestras...</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen pt-4 pr-4 pb-4 pl-4 md:pt-6 md:pr-6 md:pb-6 md:pl-6 lg:pt-8 lg:pr-8 lg:pb-8 lg:pl-8">
-      <div className="max-w-[98rem] mr-auto space-y-4 md:space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">Gestión de Tandas</h1>
-            <p className="text-gray-600 text-sm md:text-base">Organiza y programa tus sesiones de cata</p>
-          </div>
-          <Button
-            onClick={() => {
-              setEditingTanda(null);
-              setShowForm(!showForm);
-            }}
-            className="w-full md:w-auto text-white shadow-lg"
-            style={{ background: '#390B0B' }}
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nueva Tanda
-          </Button>
-        </div>
+    <div className="bg-white rounded-xl shadow-md p-6">
+      <h2 className="text-2xl font-bold text-gray-800 mb-6">Gestión de Tandas</h2>
 
-        {showForm && (
-          <FormularioTanda
-            tanda={editingTanda}
-            muestras={muestras}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowForm(false);
-              setEditingTanda(null);
-            }}
-            isLoading={createMutation.isPending || updateMutation.isPending}
-          />
-        )}
-
-        <div className="grid gap-4 md:gap-6">
-          {isLoading ? (
-            <p className="text-center text-gray-500">Cargando...</p>
-          ) : tandas.length === 0 ? (
-            <Card className="shadow-lg">
-              <CardContent className="p-8 md:p-12 text-center">
-                <Calendar className="w-12 h-12 md:w-16 md:h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-500 font-medium mb-2">No hay tandas programadas</p>
-                <p className="text-sm text-gray-400">Crea tu primera tanda para comenzar</p>
-              </CardContent>
-            </Card>
-          ) : (
-            tandas.map(tanda => {
-              const muestrasTanda = muestras.filter(m => 
-                tanda.muestras_ids?.includes(m.id)
-              );
-
-              return (
-                <Card 
-                  key={tanda.id} 
-                  className="shadow-lg hover:shadow-xl transition-shadow cursor-pointer bg-white"
-                  onClick={() => handleEdit(tanda)}
-                  style={{ borderColor: '#fce8e8' }}
-                >
-                  <CardHeader className="border-b bg-gradient-to-r from-red-50/50 to-white p-4 md:p-6" style={{ borderColor: '#fce8e8' }}>
-                    <div className="flex flex-col md:flex-row justify-between items-start gap-3">
-                      <div>
-                        <CardTitle className="text-lg md:text-xl text-gray-800 mb-2">
-                          {tanda.nombre}
-                        </CardTitle>
-                        <p className="text-sm text-gray-600">
-                          {format(new Date(tanda.fecha), "EEEE, d 'de' MMMM 'de' yyyy", { locale: es })}
-                        </p>
-                      </div>
-                      <Badge className={`${estadoColors[tanda.estado]} border text-xs md:text-sm`}>
-                        {tanda.estado}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-6">
-                    <div className="grid md:grid-cols-2 gap-3 md:gap-4 mb-4">
-                      {tanda.hora && (
-                        <div className="flex items-center gap-2 text-gray-700">
-                          <Clock className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{tanda.hora}</span>
-                        </div>
-                      )}
-                      {tanda.lugar && (
-                        <div className="flex items-center gap-2 text-gray-700">
-                          <MapPin className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{tanda.lugar}</span>
-                        </div>
-                      )}
-                      {tanda.numero_catadores && (
-                        <div className="flex items-center gap-2 text-gray-700">
-                          <Users className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm">{tanda.numero_catadores} catadores</span>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 text-gray-700">
-                        <Wine className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">{muestrasTanda.length} muestras</span>
-                      </div>
-                    </div>
-
-                    {muestrasTanda.length > 0 && (
-                      <div className="mt-4 pt-4 border-t" style={{ borderColor: '#fce8e8' }}>
-                        <p className="text-xs font-medium text-gray-500 mb-2">MUESTRAS INCLUIDAS:</p>
-                        <div className="flex flex-wrap gap-2">
-                          {muestrasTanda.map(m => (
-                            <Badge key={m.id} variant="outline" className="bg-red-50 border-red-200 text-xs" style={{ color: '#390B0B' }}>
-                              {m.nombre}
-                            </Badge>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })
-          )}
+      <div className="mb-8">
+        <h3 className="text-sm font-medium text-gray-700 mb-3">Seleccionar Tanda</h3>
+        <div className="grid grid-cols-6 sm:grid-cols-10 md:grid-cols-13 gap-2">
+          {tandaOptions.map((tanda) => (
+            <button
+              key={tanda}
+              onClick={() => setSelectedTanda(tanda)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                selectedTanda === tanda
+                  ? 'bg-red-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {tanda}
+            </button>
+          ))}
         </div>
       </div>
+
+      {selectedTanda && (
+        <div className="mt-8">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-gray-800">
+              Tanda {selectedTanda} - {samples.length} muestras
+            </h3>
+            {samples.length > 0 && (
+              <button
+                onClick={handlePrint}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                <Printer className="w-5 h-5" />
+                Imprimir Tanda
+              </button>
+            )}
+          </div>
+
+          {samples.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              No hay muestras asignadas a esta tanda
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-800 border-b border-gray-200">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Orden</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Código</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Categoría OIV</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Azúcares gr/L</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Grados % vol.</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">Añada</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-100">
+                  {samples.map((sample, index) => (
+                    <tr
+                      key={sample.id}
+                      onClick={() => setEditingSample(sample)}
+                      className={`cursor-pointer transition-colors ${
+                        index % 2 === 0 ? 'bg-white hover:bg-gray-100' : 'bg-gray-50 hover:bg-gray-150'
+                      }`}
+                    >
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm font-bold text-gray-900">
+                          {sample.codigo}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">
+                          {sample.categoria || '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">
+                          {sample.azucar !== null && sample.azucar !== undefined ? sample.azucar : '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">
+                          {sample.grado !== null && sample.grado !== undefined ? sample.grado : '-'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="text-sm text-gray-700">
+                          {sample.año || '-'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      <SampleEditModal
+        sample={editingSample}
+        onClose={() => setEditingSample(null)}
+        onSave={() => selectedTanda && fetchSamplesByTanda(selectedTanda)}
+      />
+
+      {/* Modal de impresión */}
+      {showPrintModal && selectedTanda && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 print:bg-white">
+          <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col print:max-w-full print:rounded-none print:max-h-full">
+            <div className="p-4 flex justify-between items-center border-b border-gray-200 print:hidden">
+              <h3 className="text-lg font-bold text-gray-800">Vista Previa de Impresión - Tanda {selectedTanda}</h3>
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto print:overflow-visible">
+              <div ref={printContentRef} className="p-8 print:p-0">
+                <style dangerouslySetInnerHTML={{__html: `
+                  @media print {
+                    @page { margin: 1cm; }
+                    body { margin: 0; padding: 0; }
+                    .print\\:hidden { display: none !important; }
+                    body * { visibility: hidden; }
+                    #print-content, #print-content * { visibility: visible; }
+                    #print-content { 
+                      position: absolute;
+                      left: 0;
+                      top: 0;
+                      width: 100%;
+                    }
+                  }
+                `}} />
+                
+                <div id="print-content">
+                  <div className="text-center mb-4">
+                    <div className="text-xs text-gray-800 mb-4 uppercase tracking-wide font-semibold">
+                      Concurso Internacional Vinos, Espirituosos y Aceite de Oliva Virgen Extra - LA RABIDA 2026
+                    </div>
+                    <div className="flex justify-center mb-4">
+                      <img src="/logo-bandera-1.png" alt="Logo" className="w-48 h-auto" />
+                    </div>
+                  </div>
+
+                  <h1 className="text-3xl font-bold text-black text-center tracking-wider my-8">TANDA Nº: {selectedTanda}</h1>
+
+                  <table className="w-full border-collapse mt-5">
+                    <thead>
+                      <tr className="border-b-2 border-gray-800">
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Orden</th>
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Código</th>
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Categoría OIV</th>
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Azúcares gr/L</th>
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Grados % vol.</th>
+                        <th className="px-2 py-3 text-left text-xs font-semibold text-gray-800 uppercase">Añada</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {samples.map((sample, index) => (
+                        <tr key={sample.id} className="border-b border-gray-200">
+                          <td className="px-2 py-2 text-xs">{index + 1}</td>
+                          <td className="px-2 py-2 text-xs">{sample.codigo}</td>
+                          <td className="px-2 py-2 text-xs">{sample.categoria || ''}</td>
+                          <td className="px-2 py-2 text-xs">{sample.azucar || ''}</td>
+                          <td className="px-2 py-2 text-xs">{sample.grado || ''}</td>
+                          <td className="px-2 py-2 text-xs">{sample.año || ''}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  <div className="flex justify-between items-center mt-10 pt-5 border-t border-gray-300">
+                    <div className="flex items-center">
+                      <img src="/logo-bandera-1.png" alt="Logo" className="w-40 h-auto" />
+                    </div>
+                    <div className="text-xs text-gray-800">
+                      {new Date().toLocaleDateString('es-ES')}<br/>
+                      {new Date().toLocaleTimeString('es-ES')}
+                    </div>
+                  </div>
+
+                  <div className="text-center mt-3 text-xs text-gray-500">
+                    Concurso Internacional Vinos, Espirituosos y Aceite de Oliva Virgen Extra - LA RABIDA 2026
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Botones de acción */}
+            <div className="p-4 border-t border-gray-200 flex gap-3 justify-end print:hidden">
+              <button
+                onClick={() => setShowPrintModal(false)}
+                className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmPrint}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <Printer className="w-4 h-4" />
+                Confirmar Impresión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de éxito */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-800 mb-2">¡Impresión Realizada!</h3>
+              <p className="text-gray-600 mb-6">
+                La tanda {selectedTanda} se ha enviado a imprimir correctamente.
+              </p>
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

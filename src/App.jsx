@@ -1,4 +1,6 @@
 import { AuthProvider, useAuth } from './contexts/AuthSimple';
+import { useState } from 'react';
+import ClaveAcceso from './pages/ClaveAcceso';
 import CleanLogin from './components/CleanLogin';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -29,8 +31,12 @@ const queryClient = new QueryClient({
 // Componente interno que usa el contexto de auth
 const AppContent = () => {
   const { user, loading } = useAuth();
+  const [accesoOk, setAccesoOk] = useState(false);
 
-  console.log('🔄 AppContent render:', { user: user?.nombre || 'no user', loading });
+  // Pantalla de clave de acceso
+  if (!accesoOk) {
+    return <ClaveAcceso onSuccess={() => setAccesoOk(true)} />;
+  }
 
   // Pantalla de carga
   if (loading) {
@@ -65,8 +71,6 @@ const AppContent = () => {
   }
 
   // Si hay usuario, mostrar aplicación completa con routing
-  console.log('✅ Usuario autenticado, mostrando dashboard:', user);
-  
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
