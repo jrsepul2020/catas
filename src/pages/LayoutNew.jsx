@@ -14,7 +14,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Flask
+  Beaker
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthSimple";
 
@@ -47,7 +47,7 @@ const navigationItems = [
   {
     title: "Muestras",
     url: createPageUrl("Muestras"),
-    icon: Flask,
+    icon: Beaker,
     adminOnly: true,
   },
   {
