@@ -123,7 +123,7 @@ const CleanLogin = () => {
                   letterSpacing: '0.5px',
                   boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
                 }}>
-                  {usuario.rol === 'administrador' ? '👑 Admin' : 'Catador'}
+                  {usuario.rol === 'administrador' ? '👑 Admin' : usuario.rol}
                 </span>
                 
                 {/* Número de tablet */}
