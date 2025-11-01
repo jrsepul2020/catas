@@ -15,7 +15,7 @@ export default function GestionTandas() {
   const [selectedTanda, setSelectedTanda] = useState(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [error, setError] = useState(null);
+    const [error, setError] = useState(null); // Error state for handling fetch errors
 
   const tandaOptions = Array.from({ length: 26 }, (_, i) => i + 1);
   const tandaOptionsRow1 = tandaOptions.slice(0, 13);
@@ -36,7 +36,17 @@ export default function GestionTandas() {
         throw error;
       }
 
-      console.log('✅ Muestras cargadas:', samplesData?.length || 0, samplesData);
+      console.log('✅ Muestras cargadas:', samplesData?.length || 0);
+      
+      // Log para ver el tipo de dato del campo tanda
+      if (samplesData && samplesData.length > 0) {
+        const muestrasConTanda = samplesData.filter(s => s.tanda != null);
+        console.log('📊 Muestras con tanda asignada:', muestrasConTanda.length);
+        muestrasConTanda.slice(0, 3).forEach(s => {
+          console.log(`  Muestra ${s.codigo}: tanda=${s.tanda}, tipo=${typeof s.tanda}`);
+        });
+      }
+      
       setSamples(samplesData || []);
 
       const uniqueCategories = Array.from(
@@ -99,6 +109,7 @@ export default function GestionTandas() {
   };
 
   const updateTanda = async (sampleId, newTanda) => {
+    console.log('🔄 Actualizando tanda:', { sampleId, newTanda });
     setUpdatingId(sampleId);
     try {
       const { error } = await supabase
@@ -108,13 +119,18 @@ export default function GestionTandas() {
 
       if (error) throw error;
 
-      setSamples((prev) =>
-        prev.map((sample) =>
-          sample.id === sampleId ? { ...sample, tanda: newTanda || undefined } : sample
-        )
-      );
+      console.log('✅ Tanda actualizada en BD');
+
+      // Actualizar el estado local
+      setSamples((prev) => {
+        const updated = prev.map((sample) =>
+          sample.id === sampleId ? { ...sample, tanda: newTanda } : sample
+        );
+        console.log('📊 Estado actualizado:', updated.find(s => s.id === sampleId));
+        return updated;
+      });
     } catch (error) {
-      console.error('Error updating tanda:', error);
+      console.error('❌ Error updating tanda:', error);
       alert('Error al actualizar la tanda');
     } finally {
       setUpdatingId(null);
@@ -168,7 +184,7 @@ export default function GestionTandas() {
             Aún no tienes muestras en la base de datos. Necesitas agregar muestras antes de poder asignar tandas.
           </p>
           <p className="text-sm text-gray-500">
-            Ve a la sección de "Muestras" para agregar nuevas muestras al sistema.
+            Ve a la sección de &quot;Muestras&quot; para agregar nuevas muestras al sistema.
           </p>
         </div>
       </div>
@@ -315,50 +331,70 @@ export default function GestionTandas() {
                   <td className="px-6 py-3">
                     <div className="flex flex-col gap-1 items-center">
                       <div className="flex gap-1 justify-center">
-                        {tandaOptionsRow1.map((tanda) => (
-                          <button
-                            key={tanda}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
-                            }}
-                            disabled={updatingId === sample.id}
-                            className={`w-8 h-8 rounded-full font-bold text-xs transition-all border-2 ${
-                              sample.tanda === tanda
-                                ? 'text-white scale-110 shadow-lg'
-                                : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
-                            } ${
-                              updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
-                            style={sample.tanda === tanda ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
-                            title={`Tanda ${tanda}`}
-                          >
-                            {tanda}
-                          </button>
-                        ))}
+                        {tandaOptionsRow1.map((tanda) => {
+                          const isSelected = sample.tanda === tanda;
+                          return (
+                            <button
+                              key={tanda}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('🖱️ Click en tanda:', { 
+                                  sampleId: sample.id, 
+                                  codigo: sample.codigo,
+                                  currentTanda: sample.tanda, 
+                                  clickedTanda: tanda,
+                                  willSet: sample.tanda === tanda ? null : tanda
+                                });
+                                updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
+                              }}
+                              disabled={updatingId === sample.id}
+                              className={`w-8 h-8 rounded-full font-bold text-xs transition-all border-2 ${
+                                isSelected
+                                  ? 'text-white scale-110 shadow-lg'
+                                  : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
+                              } ${
+                                updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
+                              style={isSelected ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
+                              title={`Tanda ${tanda}${isSelected ? ' (seleccionada)' : ''}`}
+                            >
+                              {tanda}
+                            </button>
+                          );
+                        })}
                       </div>
                       <div className="flex gap-1 justify-center">
-                        {tandaOptionsRow2.map((tanda) => (
-                          <button
-                            key={tanda}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
-                            }}
-                            disabled={updatingId === sample.id}
-                            className={`w-8 h-8 rounded-full font-bold text-xs transition-all border-2 ${
-                              sample.tanda === tanda
-                                ? 'text-white scale-110 shadow-lg'
-                                : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
-                            } ${
-                              updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
-                            style={sample.tanda === tanda ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
-                            title={`Tanda ${tanda}`}
-                          >
-                            {tanda}
-                          </button>
-                        ))}
+                        {tandaOptionsRow2.map((tanda) => {
+                          const isSelected = sample.tanda === tanda;
+                          return (
+                            <button
+                              key={tanda}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('🖱️ Click en tanda:', { 
+                                  sampleId: sample.id, 
+                                  codigo: sample.codigo,
+                                  currentTanda: sample.tanda, 
+                                  clickedTanda: tanda,
+                                  willSet: sample.tanda === tanda ? null : tanda
+                                });
+                                updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
+                              }}
+                              disabled={updatingId === sample.id}
+                              className={`w-8 h-8 rounded-full font-bold text-xs transition-all border-2 ${
+                                isSelected
+                                  ? 'text-white scale-110 shadow-lg'
+                                  : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
+                              } ${
+                                updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
+                              style={isSelected ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
+                              title={`Tanda ${tanda}${isSelected ? ' (seleccionada)' : ''}`}
+                            >
+                              {tanda}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </td>
@@ -419,27 +455,37 @@ export default function GestionTandas() {
               <div className="space-y-2">
                 <div className="text-xs font-medium text-gray-700 mb-2">Seleccionar Tanda:</div>
                 <div className="flex flex-wrap gap-2 justify-center">
-                  {tandaOptions.map((tanda) => (
-                    <button
-                      key={tanda}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
-                      }}
-                      disabled={updatingId === sample.id}
-                      className={`w-10 h-10 rounded-full font-bold text-sm transition-all border-2 ${
-                        sample.tanda === tanda
-                          ? 'text-white scale-110 shadow-lg'
-                          : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
-                      } ${
-                        updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                      style={sample.tanda === tanda ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
-                      title={`Tanda ${tanda}`}
-                    >
-                      {tanda}
-                    </button>
-                  ))}
+                  {tandaOptions.map((tanda) => {
+                    const isSelected = sample.tanda === tanda;
+                    return (
+                      <button
+                        key={tanda}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          console.log('🖱️ Click en tanda (móvil):', { 
+                            sampleId: sample.id, 
+                            codigo: sample.codigo,
+                            currentTanda: sample.tanda, 
+                            clickedTanda: tanda,
+                            willSet: sample.tanda === tanda ? null : tanda
+                          });
+                          updateTanda(sample.id, sample.tanda === tanda ? null : tanda);
+                        }}
+                        disabled={updatingId === sample.id}
+                        className={`w-10 h-10 rounded-full font-bold text-sm transition-all border-2 ${
+                          isSelected
+                            ? 'text-white scale-110 shadow-lg'
+                            : 'bg-gray-100 text-gray-400 border-gray-300 hover:bg-gray-200 hover:border-gray-400'
+                        } ${
+                          updatingId === sample.id ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                        }`}
+                        style={isSelected ? { background: '#390A0B', borderColor: '#390A0B' } : {}}
+                        title={`Tanda ${tanda}${isSelected ? ' (seleccionada)' : ''}`}
+                      >
+                        {tanda}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
