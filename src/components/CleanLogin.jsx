@@ -3,6 +3,13 @@ import { useAuth } from '../contexts/AuthSimple';
 const CleanLogin = () => {
   const { usuarios, quickLogin, loading } = useAuth();
 
+  // Ordenar usuarios por número de tablet
+  const usuariosOrdenados = [...usuarios].sort((a, b) => {
+    const tabletA = parseInt(a.ntablet) || 0;
+    const tabletB = parseInt(b.ntablet) || 0;
+    return tabletA - tabletB;
+  });
+
   if (loading) {
     return (
       <div style={{
@@ -56,10 +63,10 @@ const CleanLogin = () => {
         {/* Lista de usuarios */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(5, 1fr)',
           gap: '15px'
         }}>
-          {usuarios.map((usuario) => (
+          {usuariosOrdenados.map((usuario) => (
             <div
               key={usuario.id}
               onClick={() => quickLogin(usuario)}
@@ -95,7 +102,7 @@ const CleanLogin = () => {
                 <span style={{ 
                   color: '#390A0B', 
                   fontWeight: '700', 
-                  fontSize: '15px',
+                  fontSize: '13px',
                   display: 'block',
                   width: '100%'
                 }}>
