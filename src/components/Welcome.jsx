@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import PropTypes from 'prop-types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { 
@@ -6,7 +7,6 @@ import {
   Calendar, 
   BarChart3, 
   FileText, 
-  Users, 
   ArrowRight,
   CheckCircle2,
   Sparkles
@@ -187,6 +187,10 @@ const Welcome = ({ onComplete }) => {
       </div>
     </div>
   );
+};
+
+Welcome.propTypes = {
+  onComplete: PropTypes.func.isRequired,
 };
 
 export default Welcome;

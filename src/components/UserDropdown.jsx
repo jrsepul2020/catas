@@ -14,7 +14,6 @@ import {
   User, 
   Settings, 
   LogOut, 
-  Wine, 
   ChevronDown, 
   BarChart3,
   Calendar,
@@ -22,7 +21,7 @@ import {
 } from 'lucide-react';
 
 const UserDropdown = () => {
-  const { user, signOut, userName, userRole, userTablet, isAdmin } = useAuth();
+  const { user, signOut, userName, userRole, userTablet } = useAuth();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {

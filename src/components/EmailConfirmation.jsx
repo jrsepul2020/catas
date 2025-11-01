@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from '../contexts/AuthContextSupabase';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { Mail, RefreshCw, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Mail, RefreshCw, ArrowLeft } from 'lucide-react';
 
 const EmailConfirmation = ({ email, onBack }) => {
   const [resendLoading, setResendLoading] = useState(false);
@@ -168,6 +169,11 @@ const EmailConfirmation = ({ email, onBack }) => {
       </div>
     </div>
   );
+};
+
+EmailConfirmation.propTypes = {
+  email: PropTypes.string.isRequired,
+  onBack: PropTypes.func.isRequired,
 };
 
 export default EmailConfirmation;
