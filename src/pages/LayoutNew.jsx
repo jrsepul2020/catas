@@ -57,6 +57,7 @@ export default function LayoutNew({ children }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false);
   const [deferredPrompt, setDeferredPrompt] = React.useState(null);
   const [isInstalled, setIsInstalled] = React.useState(false);
+  const [updateAvailable, setUpdateAvailable] = React.useState(false);
 
   React.useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
@@ -75,6 +76,23 @@ export default function LayoutNew({ children }) {
       setDeferredPrompt(null);
     });
     
+    // Escuchar mensajes del service worker sobre actualizaciones
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+          console.log('Nueva versión disponible:', event.data.version);
+          setUpdateAvailable(true);
+        }
+      });
+
+      // Verificar si hay un service worker en espera
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration.waiting) {
+          setUpdateAvailable(true);
+        }
+      });
+    }
+    
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
@@ -86,11 +104,49 @@ export default function LayoutNew({ children }) {
     setDeferredPrompt(null);
   };
 
+  const handleUpdate = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        if (registration.waiting) {
+          // Enviar mensaje al service worker en espera para activarse
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    }
+    // Recargar la página para aplicar la actualización
+    window.location.reload();
+  };
+
   const sidebarWidth = isCollapsed ? 'w-16' : 'w-56';
   const sidebarWidthClass = isCollapsed ? 'md:ml-16' : 'md:ml-56';
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#fff5f5' }}>
+      {/* Banner de Actualización Disponible */}
+      {updateAvailable && (
+        <div className="fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-lg flex items-center justify-between gap-4"
+          style={{ backgroundColor: '#390B0B' }}>
+          <div className="flex items-center gap-3">
+            <div className="flex-shrink-0 w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+            <div>
+              <p className="text-white font-semibold text-sm">Nueva versión disponible</p>
+              <p className="text-red-200/70 text-xs">Actualiza para ver las últimas mejoras</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setUpdateAvailable(false)}
+              className="px-3 py-1.5 text-xs text-red-200/70 hover:text-white transition-colors">
+              Más tarde
+            </button>
+            <button onClick={handleUpdate}
+              className="px-4 py-1.5 rounded-lg text-white font-medium text-xs shadow-lg hover:shadow-xl transition-all"
+              style={{ backgroundColor: '#5a1616' }}>
+              Actualizar ahora
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Sidebar - Desktop */}
       <aside 
         className={`hidden md:fixed md:flex md:flex-col ${sidebarWidth} md:h-screen md:shadow-xl md:z-40 transition-all duration-300`}
@@ -168,7 +224,7 @@ export default function LayoutNew({ children }) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 px-4 py-3 shadow-md flex items-center justify-between" style={{ backgroundColor: '#390B0B' }}>
+      <div className={`md:hidden fixed top-0 left-0 right-0 z-40 px-4 py-3 shadow-md flex items-center justify-between transition-all duration-300 ${updateAvailable ? 'mt-[60px]' : ''}`} style={{ backgroundColor: '#390B0B' }}>
         <h2 className="font-bold text-lg text-white">Virtus 2026</h2>
         <button onClick={() => setIsOpen(!isOpen)} className="p-2 rounded-lg text-white hover:bg-white/10">
           {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -230,7 +286,7 @@ export default function LayoutNew({ children }) {
         </div>
       )}
 
-      <main className={`${sidebarWidthClass} min-h-screen pt-16 md:pt-0 transition-all duration-300`}>
+      <main className={`${sidebarWidthClass} min-h-screen pt-16 md:pt-0 transition-all duration-300 ${updateAvailable ? 'md:pt-[60px]' : ''}`}>
         {children}
       </main>
     </div>

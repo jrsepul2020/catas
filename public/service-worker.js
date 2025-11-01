@@ -1,7 +1,8 @@
 /* eslint-disable no-restricted-globals */
 
-// Nombre del cache
-const CACHE_NAME = 'vinisima-v1';
+// Nombre del cache - INCREMENTA ESTE NÚMERO CUANDO HAGAS CAMBIOS
+const CACHE_VERSION = 2;
+const CACHE_NAME = `vinisima-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',
@@ -12,10 +13,13 @@ const urlsToCache = [
 
 // Instalación del service worker
 self.addEventListener('install', (event) => {
+  // skipWaiting para activar inmediatamente la nueva versión
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Cache abierto');
+        console.log('Cache abierto:', CACHE_NAME);
         return cache.addAll(urlsToCache);
       })
   );
@@ -33,8 +37,28 @@ self.addEventListener('activate', (event) => {
           }
         })
       );
+    }).then(() => {
+      // Tomar control de todas las páginas inmediatamente
+      return self.clients.claim();
+    }).then(() => {
+      // Notificar a los clientes que hay actualización
+      return self.clients.matchAll().then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({
+            type: 'SW_UPDATED',
+            version: CACHE_VERSION
+          });
+        });
+      });
     })
   );
+});
+
+// Escuchar mensajes del cliente
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // Fetch - estrategia Network First, fallback a Cache
