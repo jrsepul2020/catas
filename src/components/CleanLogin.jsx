@@ -112,7 +112,7 @@ const CleanLogin = () => {
                 {/* Badge de rol */}
                 <span style={{
                   background: usuario.rol === 'administrador' 
-                    ? 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)' 
+                    ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' 
                     : usuario.rol === 'presidente'
                     ? 'linear-gradient(135deg, #059669 0%, #10b981 100%)'
                     : 'linear-gradient(135deg, #390A0B 0%, #5a1616 100%)',
