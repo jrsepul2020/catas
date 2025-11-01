@@ -14,6 +14,8 @@ import CataEspirituosos from "./CataEspirituosos";
 
 import Muestras from "./Muestras";
 
+import GestionTandas from "./GestionTandas";
+
 import TestSupabase from "./TestSupabase";
 
 import UsuariosTest from "./UsuariosTest";
@@ -47,6 +49,8 @@ const PAGES = {
     CataEspirituosos: CataEspirituosos,
     
     Muestras: Muestras,
+    
+    GestionTandas: GestionTandas,
     
     TestSupabase: TestSupabase,
     
@@ -104,6 +108,8 @@ function PagesContent() {
                 <Route path="/CataEspirituosos" element={<CataEspirituosos />} />
                 
                 <Route path="/Muestras" element={<Muestras />} />
+                
+                <Route path="/GestionTandas" element={<GestionTandas />} />
                 
                 <Route path="/TestSupabase" element={<TestSupabase />} />
                 

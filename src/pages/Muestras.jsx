@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../api/supabaseClient';
-import { Search, Filter, ArrowUpDown } from 'lucide-react';
+import { Search, Filter, Wine, MapPin, Calendar, Trash2, Eye, X } from 'lucide-react';
 
 export default function Muestras() {
   const [muestras, setMuestras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [categoriaFilter, setCategoriaFilter] = useState('');
-  const [sortField, setSortField] = useState('id');
-  const [sortDirection, setSortDirection] = useState('asc');
-  const [categorias, setCategorias] = useState([]);
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [viewingSample, setViewingSample] = useState(null);
 
   useEffect(() => {
     fetchMuestras();
@@ -21,15 +19,10 @@ export default function Muestras() {
       const { data, error } = await supabase
         .from('muestras')
         .select('*')
-        .order('id', { ascending: true });
+        .order('codigo', { ascending: true });
 
       if (error) throw error;
-
       setMuestras(data || []);
-      
-      // Extraer categorías únicas
-      const uniqueCategories = [...new Set(data?.map(m => m.categoria).filter(Boolean))];
-      setCategorias(uniqueCategories);
     } catch (error) {
       console.error('Error al cargar muestras:', error);
     } finally {
@@ -37,113 +30,101 @@ export default function Muestras() {
     }
   };
 
-  const handleSort = (field) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
+  const handleDeleteSample = async (muestra) => {
+    if (!confirm(`¿Estás seguro de que deseas eliminar la muestra "${muestra.nombre}"?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('muestras')
+        .delete()
+        .eq('id', muestra.id);
+
+      if (error) throw error;
+      await fetchMuestras();
+    } catch (error) {
+      console.error('Error al eliminar muestra:', error);
+      alert('Error al eliminar la muestra');
     }
   };
 
-  const filteredAndSortedMuestras = React.useMemo(() => {
-    let filtered = [...muestras];
+  const categorias = useMemo(() => {
+    const cats = new Set(muestras.map(m => m.categoria).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [muestras]);
 
-    // Filtro de búsqueda
+  const filteredAndSortedMuestras = useMemo(() => {
+    let filtered = muestras;
+
     if (searchTerm) {
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(m => 
-        m.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        m.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+        m.nombre?.toLowerCase().includes(term) ||
+        m.codigo?.toString().includes(term) ||
+        m.empresa?.toLowerCase().includes(term) ||
+        m.categoria?.toLowerCase().includes(term) ||
+        m.pais?.toLowerCase().includes(term)
       );
     }
 
-    // Filtro de categoría
-    if (categoriaFilter) {
-      filtered = filtered.filter(m => m.categoria === categoriaFilter);
+    if (categoryFilter) {
+      filtered = filtered.filter(m => m.categoria === categoryFilter);
     }
 
-    // Ordenamiento
-    filtered.sort((a, b) => {
-      let aVal = a[sortField];
-      let bVal = b[sortField];
-
-      // Convertir a string si es null/undefined
-      aVal = aVal ?? '';
-      bVal = bVal ?? '';
-
-      if (typeof aVal === 'string') {
-        return sortDirection === 'asc' 
-          ? aVal.localeCompare(bVal)
-          : bVal.localeCompare(aVal);
-      }
-
-      return sortDirection === 'asc' 
-        ? aVal - bVal
-        : bVal - aVal;
-    });
-
     return filtered;
-  }, [muestras, searchTerm, categoriaFilter, sortField, sortDirection]);
+  }, [muestras, searchTerm, categoryFilter]);
 
-  const SortIcon = ({ field }) => {
-    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
-    return (
-      <ArrowUpDown 
-        className={`w-4 h-4 ${sortDirection === 'asc' ? 'text-red-600' : 'text-red-600 rotate-180'}`} 
-      />
-    );
+  const getCategoryColor = (categoria) => {
+    if (!categoria) return 'bg-gray-100 text-gray-700';
+    const cat = categoria.toLowerCase();
+    if (cat.includes('blanco')) return 'bg-yellow-100 text-yellow-800';
+    if (cat.includes('tinto')) return 'bg-red-100 text-red-800';
+    if (cat.includes('rosado')) return 'bg-pink-100 text-pink-800';
+    if (cat.includes('espumoso')) return 'bg-blue-100 text-blue-800';
+    if (cat.includes('aceite')) return 'bg-green-100 text-green-800';
+    return 'bg-purple-100 text-purple-800';
   };
 
   if (loading) {
     return (
-      <div className="pt-4 pr-4 pb-4 pl-4 md:pt-6 md:pr-6 md:pb-6 lg:pt-8 lg:pr-8 lg:pb-8" 
-        style={{ backgroundColor: '#fff5f5' }}>
-        <div className="max-w-[98rem] mr-auto">
-          <div className="flex items-center justify-center h-64">
-            <p className="text-lg text-gray-600">Cargando muestras...</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-xl text-gray-600">Cargando muestras...</div>
       </div>
     );
   }
 
   return (
-    <div className="pt-4 pr-4 pb-4 pl-4 md:pt-6 md:pr-6 md:pb-6 lg:pt-8 lg:pr-8 lg:pb-8" 
-      style={{ backgroundColor: '#fff5f5' }}>
-      <div className="max-w-[98rem] mr-auto">
-        {/* Header */}
+    <div className="min-h-screen p-4 md:p-6 lg:p-8" style={{ background: 'linear-gradient(to bottom, #fef5f5, #ffffff)' }}>
+      <div className="max-w-7xl mx-auto space-y-6">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2" style={{ color: '#390A0B' }}>
+          <h1 className="text-4xl font-bold mb-2" style={{ color: '#390A0B' }}>
             Gestión de Muestras
           </h1>
           <p className="text-gray-600">
-            Total: {filteredAndSortedMuestras.length} de {muestras.length} muestras
+            Administra y visualiza todas las muestras registradas
           </p>
         </div>
 
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Buscador */}
-            <div className="relative">
+        <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Buscar por nombre, código o descripción..."
+                placeholder="Buscar por código, nombre, empresa..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#390A0B] focus:border-transparent"
               />
             </div>
 
-            {/* Filtro de categoría */}
-            <div className="relative">
+            <div className="relative w-full md:w-64">
               <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <select
-                value={categoriaFilter}
-                onChange={(e) => setCategoriaFilter(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent appearance-none"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#390A0B] focus:border-transparent appearance-none bg-white"
               >
                 <option value="">Todas las categorías</option>
                 {categorias.map(cat => (
@@ -153,124 +134,133 @@ export default function Muestras() {
             </div>
           </div>
 
-          {/* Botón limpiar filtros */}
-          {(searchTerm || categoriaFilter) && (
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setCategoriaFilter('');
-              }}
-              className="mt-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            >
-              Limpiar filtros
-            </button>
-          )}
-        </div>
-
-        {/* Tabla */}
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead style={{ backgroundColor: '#390A0B' }}>
-                <tr>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-opacity-90"
-                    onClick={() => handleSort('id')}
-                  >
-                    <div className="flex items-center gap-2">
-                      ID <SortIcon field="id" />
-                    </div>
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-opacity-90"
-                    onClick={() => handleSort('codigo')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Código <SortIcon field="codigo" />
-                    </div>
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-opacity-90"
-                    onClick={() => handleSort('nombre')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Nombre <SortIcon field="nombre" />
-                    </div>
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-opacity-90"
-                    onClick={() => handleSort('categoria')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Categoría <SortIcon field="categoria" />
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider">
-                    Descripción
-                  </th>
-                  <th 
-                    className="px-4 py-3 text-left text-xs font-semibold text-white uppercase tracking-wider cursor-pointer hover:bg-opacity-90"
-                    onClick={() => handleSort('created_at')}
-                  >
-                    <div className="flex items-center gap-2">
-                      Fecha <SortIcon field="created_at" />
-                    </div>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filteredAndSortedMuestras.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-4 py-8 text-center text-gray-500">
-                      {searchTerm || categoriaFilter 
-                        ? 'No se encontraron muestras con los filtros aplicados'
-                        : 'No hay muestras registradas'}
-                    </td>
-                  </tr>
-                ) : (
-                  filteredAndSortedMuestras.map((muestra, index) => (
-                    <tr 
-                      key={muestra.id}
-                      className={`hover:bg-red-50 transition-colors ${
-                        index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                      }`}
-                    >
-                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {muestra.id}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-700 font-mono">
-                        {muestra.codigo || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">
-                        {muestra.nombre || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm">
-                        <span 
-                          className="px-2 py-1 rounded-full text-xs font-semibold"
-                          style={{ 
-                            backgroundColor: 'rgba(57,10,11,0.1)', 
-                            color: '#390A0B' 
-                          }}
-                        >
-                          {muestra.categoria || 'Sin categoría'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">
-                        {muestra.descripcion || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-500">
-                        {muestra.created_at 
-                          ? new Date(muestra.created_at).toLocaleDateString('es-ES')
-                          : '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+          <div className="text-sm text-gray-600">
+            Mostrando {filteredAndSortedMuestras.length} de {muestras.length} muestras
           </div>
         </div>
+
+        <div className="space-y-4">
+          {filteredAndSortedMuestras.length === 0 ? (
+            <div className="bg-white rounded-xl shadow-md p-12 text-center">
+              <p className="text-gray-500 text-lg">No se encontraron muestras</p>
+            </div>
+          ) : (
+            filteredAndSortedMuestras.map((muestra) => (
+              <div
+                key={muestra.id}
+                className="rounded-xl shadow-md hover:shadow-lg transition-shadow bg-white p-6"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center bg-gradient-to-br from-[#390A0B] to-[#5a1616]">
+                      <Wine className="w-8 h-8 text-white" />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-lg font-bold text-gray-900">#{muestra.codigo}</span>
+                        <h3 className="text-xl font-bold text-gray-900">{muestra.nombre}</h3>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(muestra.categoria)}`}>
+                          {muestra.categoria || 'Sin categoría'}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-3 text-sm mb-3">
+                        {muestra.pais && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            <span>{muestra.pais}</span>
+                          </div>
+                        )}
+                        {muestra.año && (
+                          <div className="flex items-center gap-2 text-gray-700">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            <span>{muestra.año}</span>
+                          </div>
+                        )}
+                        {muestra.empresa && (
+                          <span className="text-gray-700">{muestra.empresa}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setViewingSample(muestra)}
+                      className="p-2 text-[#390A0B] hover:bg-red-50 rounded-lg"
+                      title="Ver detalles"
+                    >
+                      <Eye className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteSample(muestra)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
+
+      {viewingSample && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="text-xl font-bold">Detalles de la Muestra</h3>
+              <button onClick={() => setViewingSample(null)}>
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Código</label>
+                  <p className="text-lg font-mono">#{viewingSample.codigo}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Nombre</label>
+                  <p className="font-medium">{viewingSample.nombre}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Empresa</label>
+                  <p>{viewingSample.empresa || '-'}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">País</label>
+                  <p>{viewingSample.pais || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Año</label>
+                  <p>{viewingSample.año || '-'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Categoría</label>
+                  <span className={`px-3 py-1 rounded-full text-sm ${getCategoryColor(viewingSample.categoria)}`}>
+                    {viewingSample.categoria || '-'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            <button
+              onClick={() => setViewingSample(null)}
+              className="w-full mt-6 px-4 py-2 border rounded-lg hover:bg-gray-50"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

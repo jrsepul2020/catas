@@ -10,6 +10,9 @@ import Configuracion from './pages/Configuracion';
 import NuevaCata from './pages/NuevaCata';
 import CataEspirituosos from './pages/CataEspirituosos';
 import Muestras from './pages/Muestras';
+import GestionTandas from './pages/GestionTandas';
+import Mesas from './pages/Mesas';
+import Catadores from './pages/Catadores';
 // Import para hacer funciones disponibles globalmente
 import './utils/poblarUsuarios.js';
 
@@ -77,6 +80,9 @@ const AppContent = () => {
             <Route path="/nuevacata" element={<NuevaCata />} />
             <Route path="/cataespirituosos" element={<CataEspirituosos />} />
             <Route path="/muestras" element={<Muestras />} />
+            <Route path="/gestiontandas" element={<GestionTandas />} />
+            <Route path="/mesas" element={<Mesas />} />
+            <Route path="/catadores" element={<Catadores />} />
           </Routes>
         </LayoutNew>
       </Router>

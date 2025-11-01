@@ -14,7 +14,10 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  Beaker
+  Beaker,
+  ClipboardList,
+  Users,
+  UserCheck
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthSimple";
 
@@ -40,9 +43,26 @@ const navigationItems = [
     icon: CalendarDays,
   },
   {
+    title: "Gestión de Tandas",
+    url: createPageUrl("GestionTandas"),
+    icon: ClipboardList,
+  },
+  {
     title: "Estadísticas",
     url: createPageUrl("Estadisticas"),
     icon: BarChart3,
+  },
+  {
+    title: "Mesas",
+    url: createPageUrl("Mesas"),
+    icon: Users,
+    adminOnly: true,
+  },
+  {
+    title: "Catadores",
+    url: createPageUrl("Catadores"),
+    icon: UserCheck,
+    adminOnly: true,
   },
   {
     title: "Muestras",

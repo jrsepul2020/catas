@@ -3,7 +3,7 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
-import { Wine, LayoutDashboard, CalendarDays, BarChart3, Settings, LogOut, ClipboardCheck, Download } from "lucide-react";
+import { Wine, LayoutDashboard, CalendarDays, BarChart3, Settings, LogOut, ClipboardCheck, Download, ClipboardList } from "lucide-react";
 import { useAuth } from "../contexts/AuthSimple";
 import {
   Sidebar,
@@ -41,6 +41,11 @@ const navigationItems = [
     title: "Tandas",
     url: createPageUrl("Tandas"),
     icon: CalendarDays,
+  },
+  {
+    title: "Gestión de Tandas",
+    url: createPageUrl("GestionTandas"),
+    icon: ClipboardList,
   },
   {
     title: "Estadísticas",
